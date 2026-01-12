@@ -21,18 +21,15 @@ use Laravel\Sanctum\HasApiTokens;
  * @property array $addresses
  * @property array $wish_list
  * @property array $cart
+ * @property-read \Illuminate\Support\Carbon|null $created_at
+ * @property-read \Illuminate\Support\Carbon|null $updated_at
  */
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasApiTokens, Notifiable;
+    use HasFactory, HasApiTokens;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    // 📝 Mass assignable fields
     protected $fillable = [
         'name',
         'username',
@@ -46,37 +43,113 @@ class User extends Authenticatable
         'cart',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
+    // 🔒 Hidden fields for JSON response
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    // 🛠 Casts: auto convert json/array/datetime
+    protected $casts = [
+        'addresses' => 'array',    // 🏠 addresses JSON → array
+        'wish_list' => 'array',    // ❤️ wish_list JSON → array
+        'cart' => 'array',         // 🛒 cart JSON → array
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // 🔑 Password comparison method
+    public function comparePassword($enteredPassword)
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'addresses' => 'array',
-            'wish_list' => 'array',
-            'cart' => 'array',
-        ];
+        return Hash::check($enteredPassword, $this->password);
     }
 
-     public function comparePassword(string $password): bool
+    // 🚀 Model hooks: create defaults, hash password
+    protected static function booted()
     {
-        return Hash::check($password, $this->password);
+        static::creating(function ($user) {
+
+            // --------------------------
+            // ✏️ Name & username normalization
+            // --------------------------
+            if ($user->name) {
+                $user->name = trim($user->name);
+            }
+
+            // 🆔 Username auto-generate if empty
+            if (!$user->username && $user->name) {
+                $baseUsername = strtolower(preg_replace('/\s+/', '_', trim($user->name)));
+                $username = $baseUsername;
+                $count = 1;
+
+                while (self::where('username', $username)->exists()) {
+                    $username = $baseUsername . '_' . $count;
+                    $count++;
+                }
+
+                $user->username = $username; // ✅ final username
+            }
+
+            // ✉️ Email lowercase
+            if ($user->email) {
+                $user->email = strtolower(trim($user->email));
+            }
+
+            // --------------------------
+            // 🔐 Password hashing
+            // --------------------------
+            if ($user->isDirty('password')) {
+                $user->password = Hash::make($user->password);
+            }
+
+            // --------------------------
+            // 🖼 Default avatar
+            // --------------------------
+            if (!$user->avatar) {
+                $user->avatar = match ($user->gender) {
+                    'male' => 'https://plus.unsplash.com/premium_photo-1664536392779-049ba8fde933?w=600',
+                    'female' => 'https://plus.unsplash.com/premium_photo-1670884441012-c5cf195c062a?w=600',
+                    default => 'https://images.unsplash.com/photo-1728577740843-5f29c7586afe?w=600',
+                };
+            }
+
+            // --------------------------
+            // 🏠 Addresses handling
+            // --------------------------
+            if (is_array($user->addresses) && count($user->addresses) > 0) {
+                $addresses = $user->addresses;
+                $hasDefault = false;
+
+                foreach ($addresses as &$address) {
+                    // ✅ ensure boolean
+                    $address['isDefault'] = !empty($address['isDefault']);
+
+                    if ($address['isDefault'] && !$hasDefault) {
+                        $hasDefault = true; // ✔️ first default
+                    } else {
+                        $address['isDefault'] = false; // ❌ rest default false
+                    }
+                }
+
+                // 👑 If no default, first address is default
+                if (!$hasDefault) {
+                    $addresses[0]['isDefault'] = true;
+                }
+
+                $user->addresses = $addresses;
+            } else {
+                $user->addresses = []; // 🏠 empty array if none
+            }
+
+            // --------------------------
+            // ❤️ Wish list & 🛒 Cart defaults
+            // --------------------------
+            $user->wish_list = is_array($user->wish_list) ? $user->wish_list : [];
+            $user->cart = is_array($user->cart) ? $user->cart : [];
+        });
     }
 
+    // 🔗 Relationships (optional)
     public function wishList()
     {
         return $this->hasMany(WishListModel::class);
@@ -86,76 +159,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(CartModel::class);
     }
-
-
-   protected static function booted(): void
-{
-    static::saving(function ($user) {
-
-        // --------------------------
-        // নাম, username, email trim & lowercase
-        // --------------------------
-        $user->name = trim($user->name);
-        $user->username = trim($user->username ?? strtolower(preg_replace('/\s+/', '_', $user->name)));
-        $user->email = strtolower(trim($user->email));
-
-        // --------------------------
-        // পাসওয়ার্ড হ্যাশ
-        // --------------------------
-        if ($user->isDirty('password')) {
-            $user->password = Hash::make($user->password);
-        }
-
-        // --------------------------
-        // ডিফল্ট avatar
-        // --------------------------
-        if (!$user->avatar) {
-            $user->avatar = match ($user->gender) {
-                'male' => 'https://example.com/avatars/male.png',
-                'female' => 'https://example.com/avatars/female.png',
-                default => 'https://example.com/avatars/default.png',
-            };
-        }
-
-        // --------------------------
-        // addresses safe handling (optional)
-        // --------------------------
-        if (is_array($user->addresses)) {
-            $addresses = $user->addresses; // copy
-
-            $hasDefault = false;
-            foreach ($addresses as &$addr) {
-                $addr['street'] = $addr['street'] ?? '';
-                $addr['city'] = $addr['city'] ?? '';
-                $addr['state'] = $addr['state'] ?? '';
-                $addr['country'] = $addr['country'] ?? '';
-                $addr['postalCode'] = $addr['postalCode'] ?? '';
-                $addr['isDefault'] = !empty($addr['isDefault']) ? true : false;
-
-                if ($addr['isDefault'] && !$hasDefault) {
-                    $hasDefault = true;
-                } else {
-                    $addr['isDefault'] = false;
-                }
-            }
-
-            if (!$hasDefault && count($addresses) > 0) {
-                $addresses[0]['isDefault'] = true;
-            }
-
-            $user->addresses = $addresses; // set back
-        }
-
-        // --------------------------
-        // wish_list এবং cart default empty array (optional)
-        // --------------------------
-        if (!is_array($user->wish_list)) {
-            $user->wish_list = [];
-        }
-        if (!is_array($user->cart)) {
-            $user->cart = [];
-        }
-    });
-}
-
 }

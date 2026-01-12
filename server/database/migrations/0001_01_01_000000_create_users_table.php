@@ -9,42 +9,36 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+
     public function up(): void
     {
+        // 👤 Users table
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('username')->unique();
-            $table->string('email')->unique();
+            $table->string('name');                    // 📝 Name
+            $table->string('username')->unique()->nullable(); // 🆔 Optional username
+            $table->string('email')->unique();         // ✉️ Email
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('avatar')->nullable();
-            $table->string('password');
-            $table->enum('role', ['user', 'admin', 'manager'])->default('user');
-            $table->enum('gender', ['male', 'female', 'other'])->nullable();
-            $table->json('addresses')->default(json_encode([]));
-            $table->json('wish_list')->nullable();
-            $table->json('cart')->nullable();
+            $table->string('avatar')->nullable();      // 🖼 Avatar
+            $table->string('password');                // 🔐 Password
+            $table->enum('role', ['user', 'admin', 'manager'])->default('user'); // 👑 Role
+            $table->enum('gender', ['male', 'female', 'other'])->nullable();     // 🚻 Gender
+            $table->json('addresses')->nullable();     // 🏠 Optional addresses
+            $table->json('wish_list')->nullable();     // ❤️ Optional wish list
+            $table->json('cart')->nullable();          // 🛒 Optional cart
             $table->rememberToken();
             $table->timestamps();
         });
 
+        // 🔑 Password reset tokens
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
-
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });
     }
 
-    /**
+     /**
      * Reverse the migrations.
      */
     public function down(): void
@@ -54,3 +48,7 @@ return new class extends Migration
         Schema::dropIfExists('sessions');
     }
 };
+
+
+  
+
