@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\HasApiTokens;
 
 class UserModel extends Model
 {
+    use HasApiTokens;
     protected $fillable = [
         'name',
         'username',
@@ -50,7 +52,7 @@ class UserModel extends Model
 
             // trim & lowercase
             $user->name = trim($user->name);
-            $user->username = isset($user->username) ? trim($user->username) : null;
+            $user->username = trim($user->username ?? strtolower(preg_replace('/\s+/', '_', $user->name)));
             $user->email = strtolower(trim($user->email));
 
             // hash password
