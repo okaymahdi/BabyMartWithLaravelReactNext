@@ -15,18 +15,18 @@ return new class extends Migration
         // 👤 Users table
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');                    // 📝 Name
-            $table->string('username')->unique()->nullable(); // 🆔 Optional username
-            $table->string('email')->unique();         // ✉️ Email
+            $table->string('name');                             // 📝 Name
+            $table->string('username')->unique()->nullable();   // 🆔 Optional username
+            $table->string('email')->unique();                  // ✉️ Email
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('avatar')->nullable();      // 🖼 Avatar
-            $table->string('password');                // 🔐 Password
+            $table->string('avatar')->nullable();               // 🖼 Avatar
+            $table->string('password');                         // 🔐 Password
             $table->enum('role', ['user', 'admin', 'manager'])->default('user'); // 👑 Role
             $table->enum('gender', ['male', 'female', 'other'])->nullable();     // 🚻 Gender
-            $table->json('addresses')->nullable();     // 🏠 Optional addresses
-            $table->json('wish_list')->nullable();     // ❤️ Optional wish list
-            $table->json('cart')->nullable();          // 🛒 Optional cart
-            $table->rememberToken();
+            $table->json('addresses')->nullable();              // 🏠 Optional addresses
+            $table->json('wish_list')->nullable();             // ❤️ Optional wish list
+            $table->json('cart')->nullable();                  // 🛒 Optional cart
+            $table->rememberToken();                            // 🔑 Remember token
             $table->timestamps();
         });
 
