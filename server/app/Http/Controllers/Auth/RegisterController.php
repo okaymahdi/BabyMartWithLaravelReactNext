@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class RegisterController extends Controller
 {
@@ -14,7 +15,8 @@ class RegisterController extends Controller
     // ==================================================
     public function register(RegisterRequest $request): JsonResponse
     {
-        // ✅ validated data
+        try {
+            // ✅ validated data
         $data = $request->validated();
 
         // --------------------------
@@ -63,5 +65,12 @@ class RegisterController extends Controller
                 ->timezone('Asia/Dhaka')
                 ->toDateTimeString(),                 // 🛠 updated time
         ], 201);
+        } catch (\Exception $err) {
+            Log::error('Register Error => ' . $err->getMessage());
+            return response()->json([
+                'message' => '❌ Failed to register user',
+                'error' => $err->getMessage()
+            ], 500);
+        }
     }
 }
