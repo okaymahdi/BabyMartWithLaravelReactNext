@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Http\Request;
@@ -18,5 +19,11 @@ Route::post('/auth/register', [RegisterController::class, 'register']);
 /** 🔐 Login route */
 Route::post('/auth/login', [LoginController::class, 'login']);
 
-// 🔐 Protect route with Sanctum middleware
+/** 👤 Profile route */
 Route::middleware('auth:sanctum')->get('/auth/profile', [ProfileController::class, 'profile']);
+
+/** 👋 Logout route */
+Route::middleware('auth:sanctum')->post('/auth/logout', [
+    LogoutController::class,
+    'logout'
+]);
